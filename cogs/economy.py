@@ -185,9 +185,20 @@ class Economy(commands.Cog):
         item_fields = []
         for i in items:
             item_fields.append([f"{i[0]}: {i[1]}. ({i[2]}€)", i[3], False])
-        em = await embed_builder(interaction, "Saatavilla olevat tavarat kaupassa", "", fields=item_fields, colour=discord.Colour.green())
-        
+        em = await embed_builder(interaction, "Saatavilla olevat tavarat kaupassa", "Lähetä itemin id jota haluat ostaa", fields=item_fields, image="https://raw.githubusercontent.com/Nalle-Buhi/Buhi/main/images/shop.png", colour=discord.Colour.green())
         await interaction.response.send_message(embed=em)
+        item_id = await self.bot.wait_for(
+                "message", check=lambda message: message.author == interaction.user
+            )
+        await interaction.channel.send("Kuinka monta haluat ostaa?")
+        quantity = await self.bot.wait_for(
+                "message", check=lambda message: message.author == interaction.user
+            )
+        try:
+            total_price, item_name = await db.shop_transaction(interaction.user.id, item_id.content, int(quantity.content))
+            await interaction.channel.send(f"Ostit {quantity.content} kappaletta {item_name} hintaan {total_price}€!")
+        except Exception as err:
+            await interaction.channel.send(err)
 
 
 async def setup(bot):

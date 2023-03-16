@@ -274,7 +274,7 @@ async def update_user_job(user_id, job_id):
 async def get_single_item(item_id):
     with SQLite("./db/economy.db") as cursor:
         cursor.execute("SELECT * FROM items WHERE enabled = ? AND id = ?;", (1, item_id))
-        items = cursor.fetchall()
+        items = cursor.fetchone()
         return items
 
 async def get_available_items():
@@ -283,12 +283,35 @@ async def get_available_items():
         items = cursor.fetchall()
         return items
     
-async def shop_transaction(user_id, item_id, quantity):
-    item_data = await get_single_item(item_id)
-    user_balance = await balance(user_id)
+async def update_user_inventory(user_id, item_id, quantity):
     with SQLite("./db/economy.db") as cursor:
-        pass
+        cursor.execute("SELECT quantity FROM inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
+        result = cursor.fetchone()
+        if result is None:        
+            cursor.execute("INSERT INTO inventory (user_id, item_id, quantity) VALUES (?, ?, ?)", (user_id, item_id, quantity))
+        else:
+            cursor.execute("UPDATE inventory SET quantity = ? WHERE user_id = ? AND item_id = ?", ((result[0] + quantity), user_id, item_id))
 
+async def shop_transaction(user_id, item_id, quantity):
+    try:
+        item_data = await get_single_item(item_id)
+        if item_data == None:
+            raise ValueError("Itemiä ei ole olemassa")
+        wallet_balance, bank_balance = await balance(user_id)
+        total_price = (item_data[2]*quantity)
+        if total_price > bank_balance or quantity <= 0:
+            raise ValueError("Ei tarpeeksi rahaa ostaa kyseisiä tavaroita")  
+        else:
+            # Do the necessary transactions
+            await update_balance(user_id, wallet_balance, (bank_balance - total_price))
+            await log_transaction(user_id, total_price, "card", "-")
+            await update_user_inventory(user_id, item_id, quantity)
+            return total_price, item_data[1]
+            
+            
+
+    except Exception as err:
+        print(err)
 
 async def add_job(id, name, description, payout, enabled):
     with SQLite("./db/economy.db") as cursor:

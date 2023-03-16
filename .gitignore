@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# Database
+economy.db
+
+# Bot login
+config.py
+
 # Distribution / packaging
 .Python
 build/

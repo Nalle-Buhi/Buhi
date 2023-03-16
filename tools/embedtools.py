@@ -27,7 +27,7 @@ async def embed_builder(
         em.set_author(name=interaction.user, icon_url=interaction.user.avatar)
         em.set_footer(
             text="V0.0 Early Shitstorm",
-            icon_url="https://raw.githubusercontent.com/Nalle-Buhi/Buhi.py/main/images/avatar.png",
+            icon_url="https://raw.githubusercontent.com/Nalle-Buhi/Buhi/main/images/flag.png",
         )
         """Fields takes a list in form of:
         [[name, value, inline True/False], [name2, value2, inline True/False]]"""
