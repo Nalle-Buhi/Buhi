@@ -18,16 +18,14 @@ class Economy(commands.Cog):
 
     group = app_commands.Group(name="economy", description="Kaikki economy komennot")
 
-    @tasks.loop(hours=8) # Change this to the desired interval
+    @tasks.loop(hours=8)  # Change this to the desired interval
     async def job_service(self):
         for i in await db.get_jobs_and_payout():
             await db.update_balance_and_log(i[0], i[1], "paycheck", "+")
-            #wallet_balance, bank_balance = await db.balance(i[0])
-            #await db.update_balance(i[0], wallet_balance, (bank_balance + i[1]))
-            #await db.log_transaction(i[0], i[1], "paycheck", "+")
-            #print(f"User {i[0]} received {i[1]} from working ")
-
-    
+            # wallet_balance, bank_balance = await db.balance(i[0])
+            # await db.update_balance(i[0], wallet_balance, (bank_balance + i[1]))
+            # await db.log_transaction(i[0], i[1], "paycheck", "+")
+            # print(f"User {i[0]} received {i[1]} from working ")
 
     @group.command()
     async def balance(self, interaction: discord.Interaction):
@@ -197,18 +195,29 @@ class Economy(commands.Cog):
         item_fields = []
         for i in items:
             item_fields.append([f"{i[0]}: {i[1]}. ({i[2]}€)", i[3], False])
-        em = await embed_builder(interaction, "Saatavilla olevat tavarat kaupassa", "Lähetä itemin id jota haluat ostaa", fields=item_fields, image="https://raw.githubusercontent.com/Nalle-Buhi/Buhi/main/images/shop.png", colour=discord.Colour.green())
+        em = await embed_builder(
+            interaction,
+            "Saatavilla olevat tavarat kaupassa",
+            "Lähetä itemin id jota haluat ostaa",
+            fields=item_fields,
+            image="https://raw.githubusercontent.com/Nalle-Buhi/Buhi/main/images/shop.png",
+            colour=discord.Colour.green(),
+        )
         await interaction.response.send_message(embed=em)
         item_id = await self.bot.wait_for(
-                "message", check=lambda message: message.author == interaction.user
-            )
+            "message", check=lambda message: message.author == interaction.user
+        )
         await interaction.channel.send("Kuinka monta haluat ostaa?")
         quantity = await self.bot.wait_for(
-                "message", check=lambda message: message.author == interaction.user
-            )
+            "message", check=lambda message: message.author == interaction.user
+        )
         try:
-            total_price, item_name = await db.shop_transaction(interaction.user.id, item_id.content, int(quantity.content))
-            await interaction.channel.send(f"Ostit {quantity.content} kappaletta {item_name} hintaan {total_price}€!")
+            total_price, item_name = await db.shop_transaction(
+                interaction.user.id, item_id.content, int(quantity.content)
+            )
+            await interaction.channel.send(
+                f"Ostit {quantity.content} kappaletta {item_name} hintaan {total_price}€!"
+            )
         except Exception as err:
             await interaction.channel.send(err)
 
@@ -218,7 +227,13 @@ class Economy(commands.Cog):
         item_fields = []
         for i in inv_list:
             item_fields.append([f"{i[1]}: {i[0]}.", f"{i[2]} Kappaletta", False])
-        em = await embed_builder(interaction, "Tässä ovat tavarasi joita sinulla on inventoryssä", " ", fields=item_fields, colour=discord.Colour.green())
+        em = await embed_builder(
+            interaction,
+            "Tässä ovat tavarasi joita sinulla on inventoryssä",
+            " ",
+            fields=item_fields,
+            colour=discord.Colour.green(),
+        )
         await interaction.response.send_message(embed=em)
 
 
