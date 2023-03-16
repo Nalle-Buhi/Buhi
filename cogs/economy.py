@@ -14,8 +14,20 @@ import datetime
 class Economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.job_service.start()
 
     group = app_commands.Group(name="economy", description="Kaikki economy komennot")
+
+    @tasks.loop(hours=8) # Change this to the desired interval
+    async def job_service(self):
+        for i in await db.get_jobs_and_payout():
+            await db.update_balance_and_log(i[0], i[1], "paycheck", "+")
+            #wallet_balance, bank_balance = await db.balance(i[0])
+            #await db.update_balance(i[0], wallet_balance, (bank_balance + i[1]))
+            #await db.log_transaction(i[0], i[1], "paycheck", "+")
+            #print(f"User {i[0]} received {i[1]} from working ")
+
+    
 
     @group.command()
     async def balance(self, interaction: discord.Interaction):
@@ -199,6 +211,15 @@ class Economy(commands.Cog):
             await interaction.channel.send(f"Ostit {quantity.content} kappaletta {item_name} hintaan {total_price}€!")
         except Exception as err:
             await interaction.channel.send(err)
+
+    @group.command()
+    async def inventory(self, interaction: discord.Interaction):
+        inv_list = await db.get_user_inventory(interaction.user.id)
+        item_fields = []
+        for i in inv_list:
+            item_fields.append([f"{i[1]}: {i[0]}.", f"{i[2]} Kappaletta", False])
+        em = await embed_builder(interaction, "Tässä ovat tavarasi joita sinulla on inventoryssä", " ", fields=item_fields, colour=discord.Colour.green())
+        await interaction.response.send_message(embed=em)
 
 
 async def setup(bot):

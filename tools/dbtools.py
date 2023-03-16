@@ -292,6 +292,12 @@ async def update_user_inventory(user_id, item_id, quantity):
         else:
             cursor.execute("UPDATE inventory SET quantity = ? WHERE user_id = ? AND item_id = ?", ((result[0] + quantity), user_id, item_id))
 
+async def get_user_inventory(user_id):
+    with SQLite("./db/economy.db") as cursor:
+        cursor.execute("SELECT i.name, i.id, v.quantity FROM inventory v JOIN items i ON v.item_id = i.id WHERE v.user_id = ?", (user_id,))
+        results = cursor.fetchall()
+        return results
+
 async def shop_transaction(user_id, item_id, quantity):
     try:
         item_data = await get_single_item(item_id)
@@ -313,6 +319,13 @@ async def shop_transaction(user_id, item_id, quantity):
     except Exception as err:
         print(err)
 
+async def get_jobs_and_payout():
+    """Returs user id, job id and payout for users who have a job"""
+    with SQLite("./db/economy.db") as cursor:
+        cursor.execute("SELECT u.discord_id, j.payout FROM users u JOIN jobs j ON u.job_id = j.id WHERE j.enabled = 1")
+        results = cursor.fetchall()
+        return results
+
 async def add_job(id, name, description, payout, enabled):
     with SQLite("./db/economy.db") as cursor:
         cursor.execute(
@@ -323,7 +336,27 @@ async def add_job(id, name, description, payout, enabled):
             f"Added or Replaced a job into the database with the following values {id}, {name}, {payout}, {enabled} \n"
         )
 
+async def update_balance_and_log(user_id, amount, transaction_type, sign):
+    try:
+        wallet_balance, bank_balance = await balance(user_id)
+        if transaction_type == "cash":
+            if sign == "+":
+                await update_balance(user_id, (wallet_balance + amount), bank_balance)
+            if sign == "-":
+                await update_balance(user_id, (wallet_balance - amount), bank_balance)
+            await log_transaction(user_id, amount, transaction_type, sign)
+            print("updated and logged", user_id, amount, transaction_type, sign)
 
+        else:
+            if sign == "+":
+                await update_balance(user_id, wallet_balance, (bank_balance + amount))
+            if sign == "-":
+                await update_balance(user_id, wallet_balance, (bank_balance - amount))
+            await log_transaction(user_id, amount, transaction_type, sign)
+            print("updated and logged", user_id, amount, transaction_type, sign)
+    except Exception as err:
+        print(err)
+    
 async def add_item(id, name, price, description, image_url, enabled):
     with SQLite("./db/economy.db") as cursor:
         cursor.execute(
